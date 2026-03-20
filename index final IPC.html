@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IPC Nguni Church App</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #56606a;
+        }
+
+        .app { display: flex; height: 100vh; }
+
+        .sidebar {
+            width: 250px;
+            background-color: #10f132;
+            color: rgb(250, 246, 246);
+            padding-top: 20px;
+        }
+
+        .sidebar h2 { text-align: center; }
+
+        .tab {
+            padding: 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #d8d9d4;
+        }
+
+        .tab:hover { background-color: #0066cc; }
+
+        .content {
+            flex: 1;
+            padding: 20px;
+            background: white;
+            overflow-y: auto;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 5px;
+            border: 1px solid #81a51c;
+        }
+
+        button {
+            background-color: #004080;
+            color: white;
+            border: none;
+        }
+
+        button:hover { background-color: #2dba42; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th {
+            background-color: #a62626;
+            color: white;
+            padding: 8px;
+        }
+
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #ccc;
+            text-align: center;
+        }
+
+        .hidden { display: none; }
+        .logout { background: rgb(114, 141, 40); }
+
+        .login-box {
+            width: 350px;
+            margin: 100px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(12, 19, 235, 0.2);
+        }
+
+        .summary-box {
+            background: #f2f9ff;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div id="loginSection" class="login-box">
+    <h2>IPC Nguni Login</h2>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+</div>
+
+<div id="appSection" class="app hidden">
+
+    <div class="sidebar">
+        <h2>IPC Nguni</h2>
+        <div class="tab" onclick="showTab('add')">Add Collection</div>
+        <div class="tab" onclick="showTab('Sunday School Offering')">Sunday School</div>
+        <div class="tab" onclick="showTab('Offering')">Offering</div>
+        <div class="tab" onclick="showTab('Tithe')">Tithe</div>
+        <div class="tab" onclick="showTab('Dorcas')">Dorcas</div>
+        <div class="tab" onclick="showTab('Thanksgiving')">Thanksgiving</div>
+        <div class="tab" onclick="showTab('daily')">Daily Totals</div>
+        <div class="tab" onclick="showTab('monthly')">Monthly Totals</div>
+        <div class="tab" onclick="showTab('categoryTotals')">Category Totals</div>
+        <div class="tab" onclick="showTab('searchDate')">Search By Date</div>
+        <div class="tab logout" onclick="logout()">Logout</div>
+    </div>
+
+    <div class="content">
+
+        <!-- ADD -->
+        <div id="addSection" class="hidden">
+            <h2>Add Sunday Collection</h2>
+            <input type="date" id="date">
+            <select id="category">
+                <option>Sunday School Offering</option>
+                <option>Offering</option>
+                <option>Tithe</option>
+                <option>Dorcas</option>
+                <option>Thanksgiving</option>
+            </select>
+            <input type="number" id="amount" placeholder="Amount (Ksh)">
+            <button onclick="addCollection()">Save</button>
+        </div>
+
+        <!-- SEARCH DATE -->
+        <div id="searchSection" class="hidden">
+            <h2>Search Records By Date</h2>
+            <input type="date" id="searchDateInput">
+            <button onclick="searchByDate()">Search</button>
+        </div>
+
+        <!-- VIEW -->
+        <div id="viewSection">
+            <h2 id="viewTitle">Records</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date / Category</th>
+                        <th>Amount (Ksh)</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTable"></tbody>
+            </table>
+            <div id="summaryBox" class="summary-box hidden"></div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const adminUser="admin", adminPass="1234";
+const memberUser="member", memberPass="1234";
+let currentRole="";
+
+function login(){
+    if(username.value===adminUser && password.value===adminPass){
+        currentRole="admin"; startApp();
+    }else if(username.value===memberUser && password.value===memberPass){
+        currentRole="member"; startApp(); addSection.classList.add("hidden");
+    }else alert("Invalid login!");
+}
+
+function startApp(){
+    loginSection.classList.add("hidden");
+    appSection.classList.remove("hidden");
+    if(currentRole==="admin") addSection.classList.remove("hidden");
+    showTab("Sunday School Offering");
+}
+
+function logout(){ location.reload(); }
+
+function addCollection(){
+    if(!date.value || !amount.value){ alert("Fill all fields"); return;}
+    let records=JSON.parse(localStorage.getItem("churchData"))||[];
+    records.push({date:date.value,category:category.value,amount:parseFloat(amount.value)});
+    localStorage.setItem("churchData",JSON.stringify(records));
+    date.value=""; amount.value="";
+    alert("Saved Successfully!");
+}
+
+function showTab(type){
+    addSection.classList.add("hidden");
+    searchSection.classList.add("hidden");
+    viewSection.classList.remove("hidden");
+    dataTable.innerHTML="";
+    summaryBox.classList.add("hidden");
+
+    let records=JSON.parse(localStorage.getItem("churchData"))||[];
+
+    if(type==="add"){ if(currentRole==="admin"){ addSection.classList.remove("hidden"); viewSection.classList.add("hidden"); } return;}
+    if(type==="searchDate"){ searchSection.classList.remove("hidden"); viewTitle.innerText="Search By Date"; return;}
+
+    if(type==="categoryTotals"){
+        viewTitle.innerText="Total for Each Collection Category";
+        let totals={"Sunday School Offering":0,"Offering":0,"Tithe":0,"Dorcas":0,"Thanksgiving":0};
+        records.forEach(r=>{ totals[ksh.category]+=ksh.amount; });
+        let grand=0;
+        for(let c in totals){ grand+=totals[c]; dataTable.innerHTML+=`<tr><td>${c}</td><td>Ksh ${totals[c]}</td></tr>`;}
+        summaryBox.innerHTML="Grand Total: Ksh "+grand;
+        summaryBox.classList.remove("hidden");
+        return;
+    }
+
+    if(type==="daily"){
+        viewTitle.innerText="Daily Totals";
+        let daily={};
+        records.forEach(ksh=>{ daily[ksh.date]=(daily[ksh.date]||0)+ksh.amount; });
+        for(let d in daily){ dataTable.innerHTML+=`<tr><td>${d}</td><td>Ksh ${daily[d]}</td></tr>`;}
+        return;
+    }
+
+    if(type==="monthly"){
+        viewTitle.innerText="Monthly Totals";
+        let monthly={};
+        records.forEach(r=>{ let m=ksh.date.substring(0,7); monthly[m]=(monthly[m]||0)+ksh.amount; });
+        for(let m in monthly){ dataTable.innerHTML+=`<tr><td>${m}</td><td>Ksh ${monthly[m]}</td></tr>`;}
+        return;
+    }
+
+    viewTitle.innerText=type+" Records";
+    let total=0;
+    records.filter(ksh=>ksh.category===type).forEach(ksh=>{
+        total+=ksh.amount;
+        dataTable.innerHTML+=`<tr><td>${ksh.date}</td><td>Ksh ${ksh.amount}</td></tr>`;
+    });
+    summaryBox.innerHTML="Total for "+type+": Ksh "+total;
+    summaryBox.classList.remove("hidden");
+}
+
+function searchByDate(){
+    let selectedDate=searchDateInput.value;
+    if(!selectedDate){ alert("Select a date"); return;}
+
+    let records=JSON.parse(localStorage.getItem("churchData"))||[];
+    let filtered=records.filter(ksh=>ksh.date===selectedDate);
+
+    dataTable.innerHTML="";
+    let total=0;
+
+    filtered.forEach(ksh=>{
+        total+=ksh.amount;
+        dataTable.innerHTML+=`<tr><td>${ksh.category}</td><td>Ksh ${ksh.amount}</td></tr>`;
+    });
+
+    viewTitle.innerText="Records for "+selectedDate;
+    summaryBox.innerHTML="Total for "+selectedDate+": Ksh "+total;
+    summaryBox.classList.remove("hidden");
+}
+</script>
+
+</body>
+</html>
